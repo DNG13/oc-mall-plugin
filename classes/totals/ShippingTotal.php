@@ -14,27 +14,27 @@ class ShippingTotal implements \JsonSerializable
     /**
      * @var TotalsCalculator
      */
-    private $totals;
+    protected $totals;
     /**
      * @var ShippingMethod
      */
-    private $method;
+    protected $method;
     /**
      * @var int
      */
-    private $preTaxes;
+    protected $preTaxes;
     /**
      * @var int
      */
-    private $total;
+    protected $total;
     /**
      * @var int
      */
-    private $taxes;
+    protected $taxes;
     /**
      * @var int
      */
-    private $appliedDiscount;
+    protected $appliedDiscount;
     /**
      * @var int
      */
@@ -150,7 +150,7 @@ class ShippingTotal implements \JsonSerializable
         return $method;
     }
 
-    private function applyDiscounts(int $price): ?float
+    protected function applyDiscounts(int $price): ?float
     {
         $discounts = Discount::whereIn('trigger', ['total', 'product'])
                              ->where('type', 'shipping')
