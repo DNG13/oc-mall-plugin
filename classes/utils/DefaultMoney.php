@@ -41,6 +41,8 @@ class DefaultMoney implements Money
 
     protected function render($contents, array $vars)
     {
+        // Temp solution: https://github.com/OFFLINE-GmbH/oc-mall-plugin/issues/258
+        return number_format($vars['price'],$vars['currency']->decimals, ',', ' ').' '.$vars['currency']->symbol;
         $template = $this->twig->createTemplate($contents);
 
         return $template->render($vars);
