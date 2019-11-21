@@ -113,6 +113,17 @@ class Cart extends Model
         return $this->totals();
     }
 
+    /**
+     * Check if this cart has only virtual products in it.
+     * @return bool
+     */
+    public function getIsVirtualAttribute(): bool
+    {
+        return $this->products->count() > 0 && $this->products->every(function (CartProduct $product) {
+            return $product->data->is_virtual;
+        });
+    }
+
     public function getShippingAddressSameAsBillingAttribute(): bool
     {
         return $this->shipping_address_id === $this->billing_address_id;
@@ -229,7 +240,7 @@ class Cart extends Model
     }
 
     /**
-     * Enforce a fixed shipping price for this cart.
+     * Enforce a fixed shipping price for a shipping method.
      *
      * The provided price will override the default price for the
      * current shipping method.
@@ -237,16 +248,26 @@ class Cart extends Model
      * This is useful if you need a dynamic way to set shipping costs
      * based on an arbitrary other value.
      *
-     * @example $cart->forceShippingPrice(['EUR' => 200], 'Fee Zone 2');
-     *
+     * @param int    $id
      * @param array  $price
      * @param string $name
+     *
+     * @example $cart->forceShippingPrice(1, ['EUR' => 200], 'Fee Zone 2');
+     *
      */
-    public function forceShippingPrice(array $price, string $name = '')
+    public function forceShippingPrice(int $id, array $price, string $name = '')
     {
-        Session::put('mall.shipping.enforced.price', $price);
+        Session::put('mall.shipping.enforced.' . $id . '.price', $price);
         if ($name) {
-            Session::put('mall.shipping.enforced.name', $name);
+            Session::put('mall.shipping.enforced.' . $id . '.name', $name);
         }
+    }
+
+    /**
+     * Undo an enforced shipping price.
+     */
+    public function forgetForcedShippingPrice()
+    {
+        Session::forget('mall.shipping.enforced');
     }
 }

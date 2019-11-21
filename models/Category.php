@@ -208,18 +208,12 @@ class Category extends Model
      */
     public function getParentOptions()
     {
-        $options = [
-            // null key for "no parent"
-            null => '(' . trans('offline.mall::lang.category.no_parent') . ')',
-        ];
-
-        // In edit mode, exclude the node itself.
         $items = $this->id ? Category::withoutSelf()->get() : Category::getAll();
-        $items->each(function ($item) use (&$options) {
-            return $options[$item->id] = sprintf('%s %s', str_repeat('--', $item->getLevel()), $item->name);
-        });
 
-        return $options;
+        return [
+                // null key for "no parent"
+                null => '(' . trans('offline.mall::lang.category.no_parent') . ')',
+            ] + $items->listsNested('name', 'id');
     }
 
     /**

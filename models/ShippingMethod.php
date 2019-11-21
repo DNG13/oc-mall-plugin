@@ -80,6 +80,20 @@ class ShippingMethod extends Model
         ],
     ];
 
+    /**
+     * This method can be used when no shipping is required
+     * for example when there are only virtual products in a cart.
+     *
+     * @return ShippingMethod
+     */
+    public static function noShippingRequired()
+    {
+        return new self([
+            'name'        => trans('offline.mall::lang.shipping_method.not_required_name'),
+            'description' => trans('offline.mall::lang.shipping_method.not_required_description'),
+        ]);
+    }
+
     public function afterDelete()
     {
         \DB::table('offline_mall_prices')
@@ -100,15 +114,38 @@ class ShippingMethod extends Model
 
     public function getNameAttribute()
     {
-        if (($enforced = Session::get('mall.shipping.enforced.name')) && app()->runningInBackend() === false) {
+        $enforcedKey = sprintf('mall.shipping.enforced.%s.name', $this->id);
+        if ($this->useEnforcedValues() && $enforced = Session::get($enforcedKey)) {
             return $enforced;
         }
 
-        return $this->attributes['name'];
+        return $this->attributes['name'] ?? '';
+    }
+
+    /**
+     * Check if enforced shipping price/name should be used.
+     * The values are ignored if a ShippingMethodSelector component
+     * is present on the current page.
+     *
+     * @return bool
+     */
+    protected function useEnforcedValues()
+    {
+        // Never use enforced values in the backend.
+        if (app()->runningInBackend() === true) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function getAvailableByCart(Cart $cart)
     {
+        // Virtual carts cannot be shipped.
+        if ($cart->is_virtual) {
+            return collect([]);
+        }
+
         $total = $cart->totals()->productPostTaxes();
 
         return self
@@ -144,14 +181,17 @@ class ShippingMethod extends Model
         $relation = 'prices',
         ?Closure $filter = null
     ) {
-        $checkEnforced = $relation === 'prices' && app()->runningInBackend() === false;
-        if ($checkEnforced && $enforced = Session::get('mall.shipping.enforced.price', [])) {
+        $checkEnforced = $relation === 'prices' && $this->useEnforcedValues();
+        $enforcedKey   = sprintf('mall.shipping.enforced.%s.price', $this->id);
+
+        if ($checkEnforced && $enforced = Session::get($enforcedKey, [])) {
             $currency = Currency::resolve($currency);
-            $value = array_get($enforced, $currency->code);
-            $price = new Price([
+            $value    = array_get($enforced, $currency->code);
+            $price    = new Price([
                 'currency_id' => $currency->id,
-                'price' => $value,
+                'price'       => $value,
             ]);
+
             return $price;
         }
 
